@@ -2,6 +2,9 @@ import gym
 from gym import spaces
 import numpy as np
 import pandas as pd
+import io
+import sys
+import matplotlib.pyplot as plt
 
 #どれくらい過去のデータを入力するか
 WINDOW_SIZE = 60
@@ -26,10 +29,11 @@ class FxEnv(gym.Env):
 
         # 0:売りポジ 1:ノーポジ 2:買いポジ
         self.action_space = spaces.Discrete(3)
-
         self.observation_space = spaces.Box(50.0, 200, WINDOW_SIZE)
         self.load_history()
-        print(self.history.head())
+
+        # エピソードの記録
+        self.log_columns = ['price', 'position', 'reward']
 
     def _reset(self):
         self.prev_position = 0
@@ -37,6 +41,10 @@ class FxEnv(gym.Env):
         self.current_step = 0
         self.current_index = self.start_index
         self.prev_obs = self.make_obs()
+        self.log_data = pd.DataFrame(columns = self.log_columns)
+        #self.log_data.set_index(['date'])
+        self.reward_sum = 0
+
         return self.prev_obs
 
     def _step(self, action):
@@ -46,8 +54,16 @@ class FxEnv(gym.Env):
 
         # 新規ポジション作成時にスプレッド分の手数料を支払う
         position = (action - 1) * POSITION_UNIT
-        if position != self.prev_position and position != 0:
+        if position != self.prev_position:
             reward -= abs(position) * SPREAD
+        self.reward_sum += reward
+
+        self.log_data = self.log_data.append(pd.DataFrame([[
+            self.history['close'][self.current_index-1],
+            position,
+            self.reward_sum
+        ]], columns=self.log_columns, index=[self.history['date'][self.current_index-1]]))
+
 
         # 時刻を 1 unit 進め、情報を更新する
         self.current_index += 1
@@ -56,10 +72,15 @@ class FxEnv(gym.Env):
         self.prev_position = position
 
         finish = self.current_step >= STEPS
+        if finish:
+            self.draw_chart()
+
         return self.prev_obs, reward, finish, {}
 
     def _render(self, mode='ansi', close=False):
-        pass
+        outfile = io.StringIO() if mode == 'ansi' else sys.stdout
+        outfile.write('\nstep: {}\n'.format(self.current_step))
+        return outfile
 
     def _close(self):
         pass
@@ -75,3 +96,10 @@ class FxEnv(gym.Env):
     def make_obs(self):
         values = self.history['close'][self.current_index-WINDOW_SIZE:self.current_index].values
         return values
+
+    def draw_chart(self):
+        print(self.log_data)
+        ax1, ax2, ax3  = self.log_data.plot(subplots=True)
+        plt.show()
+
+

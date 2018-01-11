@@ -65,7 +65,7 @@ class EpisodeAccumulator(rl.callbacks.Callback):
         return self.reward_sum / self.episode_count
 accumulator = EpisodeAccumulator()
 
-dqn.test(env, nb_episodes=1, visualize=True, callbacks=[accumulator])
+dqn.test(env, nb_episodes=5, visualize=False, callbacks=[accumulator])
 print("total reward: " + str(accumulator.reward_sum))
 
 
