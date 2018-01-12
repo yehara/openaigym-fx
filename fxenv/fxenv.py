@@ -72,8 +72,8 @@ class FxEnv(gym.Env):
         # 時刻を 1 unit 進め、情報を更新する
         self.current_index += 1
         self.current_step += 1
-        self.prev_obs = self.make_obs()
         self.prev_position = position
+        self.prev_obs = self.make_obs()
 
         finish = self.current_step >= STEPS
         if finish:
