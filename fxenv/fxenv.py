@@ -29,10 +29,7 @@ class FxEnv(gym.Env):
 
         # 0:売りポジ 1:ノーポジ 2:買いポジ
         self.action_space = spaces.Discrete(3)
-        #self.observation_space = spaces.Box(50.0, 200, WINDOW_SIZE)
-        low = np.concatenate([-np.ones(1)*POSITION_UNIT, np.ones(WINDOW_SIZE)*50])
-        high = np.concatenate([np.ones(1)*POSITION_UNIT, np.ones(WINDOW_SIZE)*200])
-        self.observation_space = spaces.Box(low, high)
+        self.observation_space = spaces.Box(0, 1, WINDOW_SIZE + 1)
 
         self.load_history()
 
@@ -99,8 +96,12 @@ class FxEnv(gym.Env):
 
     def make_obs(self):
         values = self.history['close'][self.current_index-WINDOW_SIZE:self.current_index].values
-        obs =  np.concatenate([[self.prev_position], values])
+        values = values - values.min()
+        values = values / values.max()
+        pos = ((self.prev_position / POSITION_UNIT) + 1 ) /2
+        obs =  np.concatenate([[pos], values])
         return obs
+
 
     def draw_chart(self):
         ax1, ax2, ax3  = self.log_data.plot(subplots=True)
