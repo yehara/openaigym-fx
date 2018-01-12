@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 #どれくらい過去のデータを入力するか
 WINDOW_SIZE = 60
-#1エピソードのステップ数 5日分
+#1エピソードのステップ数 1日分
 STEPS = 1440 * 1
 #売り買いのボジションの単位
 POSITION_UNIT = 10000
@@ -29,7 +29,11 @@ class FxEnv(gym.Env):
 
         # 0:売りポジ 1:ノーポジ 2:買いポジ
         self.action_space = spaces.Discrete(3)
-        self.observation_space = spaces.Box(50.0, 200, WINDOW_SIZE)
+        #self.observation_space = spaces.Box(50.0, 200, WINDOW_SIZE)
+        low = np.concatenate([-np.ones(1)*POSITION_UNIT, np.ones(WINDOW_SIZE)*50])
+        high = np.concatenate([np.ones(1)*POSITION_UNIT, np.ones(WINDOW_SIZE)*200])
+        self.observation_space = spaces.Box(low, high)
+
         self.load_history()
 
         # エピソードの記録
@@ -95,11 +99,9 @@ class FxEnv(gym.Env):
 
     def make_obs(self):
         values = self.history['close'][self.current_index-WINDOW_SIZE:self.current_index].values
-        return values
+        obs =  np.concatenate([[self.prev_position], values])
+        return obs
 
     def draw_chart(self):
-        print(self.log_data)
         ax1, ax2, ax3  = self.log_data.plot(subplots=True)
         plt.show()
-
-
