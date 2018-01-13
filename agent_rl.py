@@ -1,6 +1,5 @@
 import numpy as np
 import gym
-from gym import wrappers # 追加
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -17,7 +16,6 @@ ENV_NAME = 'FxEnv-v1'
 env = gym.make(ENV_NAME)
 nb_actions = env.action_space.n
 
-# Next, we build a very simple model.
 model = Sequential()
 model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
 model.add(Dense(16))
@@ -35,22 +33,20 @@ policy = BoltzmannQPolicy()
 dqn = DQNAgent(model=model,
                nb_actions=nb_actions,
                memory=memory,
-               nb_steps_warmup=0,
+               nb_steps_warmup=100,
                target_model_update=1e-2,
                policy=policy)
 dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
 nb_pre_steps = 0
-nb_steps = 100000
+nb_steps = 14400
 
 if nb_pre_steps > 0:
     dqn.load_weights('dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_pre_steps))
 
-print(env)
-dqn.fit(env, nb_steps=nb_steps, visualize=False, verbose=1, log_interval=10000)
-
-# After training is done, we save the final weights.
-dqn.save_weights('dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_steps + nb_pre_steps), overwrite=True)
+if nb_steps > 0:
+    dqn.fit(env, nb_steps=nb_steps, visualize=False, verbose=1, log_interval=1440)
+    dqn.save_weights('dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_steps + nb_pre_steps), overwrite=True)
 
 class EpisodeAccumulator(rl.callbacks.Callback):
     def __init__(self):
@@ -65,7 +61,7 @@ class EpisodeAccumulator(rl.callbacks.Callback):
         return self.reward_sum / self.episode_count
 accumulator = EpisodeAccumulator()
 
-dqn.test(env, nb_episodes=5, visualize=False, callbacks=[accumulator])
+dqn.test(env, nb_episodes=3, visualize=True, callbacks=[accumulator])
 print("total reward: " + str(accumulator.reward_sum))
 
 
