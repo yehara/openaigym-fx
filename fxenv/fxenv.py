@@ -2,8 +2,6 @@ import gym
 from gym import spaces
 import numpy as np
 import pandas as pd
-import io
-import sys
 import matplotlib.pyplot as plt
 
 #どれくらい過去のデータを入力するか
@@ -14,11 +12,6 @@ STEPS = 1440 * 1
 POSITION_UNIT = 10000
 #スプレッド(円)
 SPREAD = 0.004
-
-#actions
-BUY_POSITION = 2
-NO_POSITION = 1
-SELL_POSITION = 0
 
 class FxEnv(gym.Env):
 
@@ -43,14 +36,12 @@ class FxEnv(gym.Env):
         self.current_index = self.start_index
         self.prev_obs = self.make_obs()
         self.log_data = pd.DataFrame(columns = self.log_columns)
-        #self.log_data.set_index(['date'])
         self.reward_sum = 0
-
         return self.prev_obs
 
     def _step(self, action):
         # 保有ポジション*価格変動分が報酬
-        price_diff = self.prev_obs[-1] - self.prev_obs[-2]
+        price_diff = self.history['close'][self.current_index-1] - self.history['close'][self.current_index-2]
         reward = self.prev_position * price_diff
 
         # 新規ポジション作成時にスプレッド分の手数料を支払う
@@ -65,7 +56,6 @@ class FxEnv(gym.Env):
             self.reward_sum
         ]], columns=self.log_columns, index=[self.history['date'][self.current_index-1]]))
 
-
         # 時刻を 1 unit 進め、情報を更新する
         self.current_index += 1
         self.current_step += 1
@@ -75,13 +65,10 @@ class FxEnv(gym.Env):
         finish = self.current_step >= STEPS
         if finish:
             self.draw_chart()
-
         return self.prev_obs, reward, finish, {}
 
-    def _render(self, mode='ansi', close=False):
-        outfile = io.StringIO() if mode == 'ansi' else sys.stdout
-        outfile.write('\nstep: {}\n'.format(self.current_step))
-        return outfile
+    def _render(self, mode='human', close=False):
+        pass
 
     def _close(self):
         pass
@@ -95,13 +82,12 @@ class FxEnv(gym.Env):
         self.history = history_all[['date','close']]
 
     def make_obs(self):
-        values = self.history['close'][self.current_index-WINDOW_SIZE:self.current_index].values
-        values = values - values.min()
-        values = values / values.max()
+        prices = self.history['close'][self.current_index-WINDOW_SIZE:self.current_index].values
+        normal_values = prices - prices.min()
+        normal_values = normal_values / normal_values.max()
         pos = ((self.prev_position / POSITION_UNIT) + 1 ) /2
-        obs =  np.concatenate([[pos], values])
+        obs =  np.concatenate([[pos], normal_values])
         return obs
-
 
     def draw_chart(self):
         ax1, ax2, ax3  = self.log_data.plot(subplots=True)
