@@ -42,11 +42,11 @@ nb_pre_steps = 0
 nb_steps = 14400
 
 if nb_pre_steps > 0:
-    dqn.load_weights('dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_pre_steps))
+    dqn.load_weights('weights/dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_pre_steps))
 
 if nb_steps > 0:
     dqn.fit(env, nb_steps=nb_steps, visualize=False, verbose=1, log_interval=1440)
-    dqn.save_weights('dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_steps + nb_pre_steps), overwrite=True)
+    dqn.save_weights('weights/dqn_{}_weights_{}.h5f'.format(ENV_NAME, nb_steps + nb_pre_steps), overwrite=True)
 
 class EpisodeAccumulator(rl.callbacks.Callback):
     def __init__(self):
